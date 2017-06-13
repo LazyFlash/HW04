@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.FileReader;
 import java.util.LinkedList;
@@ -49,11 +50,14 @@ class Node {
 	}
 }
 
-public class RBTree {
+public class RbTree {
 	public Node nil = new Node();
 	public Node root = nil;
+	public int inserted = 0;
+	public int deleted = 0;
+	public int missed = 0;
 	
-	public RBTree(){
+	public RbTree(){
 		root.left = nil;
 		root.right = nil;
 		root.parent = nil;
@@ -82,8 +86,8 @@ public class RBTree {
 		}
 		n.left = nil;
 		n.right = nil;
-		n.isBlack = false;
 		rbInsertFixUp(tree, n);
+		this.inserted++;
 	}
 	
 	public void rbInsertFixUp(Node tree, Node n){
@@ -173,7 +177,8 @@ public class RBTree {
 		}else if(obj == obj.parent.right){
 			obj.parent.right = trns;
 		}
-			trns.parent = obj.parent;
+		trns.parent = obj.parent;
+		
 	}
 	
 	public Node min(Node tree){
@@ -187,6 +192,7 @@ public class RBTree {
 		Node n = search(tree, key);
 		if(n == nil){
 			System.out.println(key + " is not in this tree");
+			this.missed++;
 			return;
 		}
 		Node x = nil;
@@ -215,14 +221,18 @@ public class RBTree {
 			y.left.parent = y;
 			y.isBlack = n.isBlack;
 		}
+		
 		if(yOriginallyBlack){
 			rbDeleteFixUp(tree, x);
 		}
+		this.deleted++;
 	}
 	
 	public void rbDeleteFixUp(Node tree, Node n){
 		Node w;
+		
 		while(n != root && n.isBlack){
+			
 			if(n == n.parent.left){
 				w = n.parent.right;
 				if(!w.isBlack){
@@ -235,18 +245,19 @@ public class RBTree {
 				if(w.left.isBlack && w.right.isBlack){
 					w.isBlack = false;
 					n = n.parent;
-				}else if(w.right.isBlack){
-					w.left.isBlack = true;
-					w.isBlack = false;
-					rightRotate(tree, w);
-					w = n.parent.right;
+				}else{
+					if(w.right.isBlack){
+						w.left.isBlack = true;
+						w.isBlack = false;
+						rightRotate(tree, w);
+						w = n.parent.right;
+					}
+					w.isBlack = n.parent.isBlack;
+					n.parent.isBlack = true;
+					w.right.isBlack = true;
+					leftRotate(tree, n.parent);
+					n = root;
 				}
-				
-				w.isBlack = n.parent.isBlack;
-				n.parent.isBlack = true;
-				w.right.isBlack = true;
-				leftRotate(tree, n.parent);
-				n = root;
 			}else{
 				w = n.parent.left;
 				if(!w.isBlack){
@@ -259,18 +270,19 @@ public class RBTree {
 				if(w.right.isBlack && w.left.isBlack){
 					w.isBlack = false;
 					n = n.parent;
-				}else if(w.left.isBlack){
-					w.right.isBlack = true;
-					w.isBlack = false;
-					leftRotate(tree, w);
-					w = n.parent.left;
+				}else{
+					if(w.left.isBlack){
+						w.right.isBlack = true;
+						w.isBlack = false;
+						leftRotate(tree, w);
+						w = n.parent.left;
+					}
+					w.isBlack = n.parent.isBlack;
+					n.parent.isBlack = true;
+					w.left.isBlack = true;
+					rightRotate(tree, n.parent);
+					n = root;
 				}
-				
-				w.isBlack = n.parent.isBlack;
-				n.parent.isBlack = true;
-				w.left.isBlack = true;
-				rightRotate(tree, n.parent);
-				n = root;
 			}
 		}
 		n.isBlack = true;
@@ -297,7 +309,11 @@ public class RBTree {
 				tree = tree.left;
 			}else{
 				tree = stk.pop();
-				System.out.println(" " + tree.val);
+				if(tree.isBlack){
+					System.out.println(tree.val + " B");
+				}else{
+					System.out.println(tree.val + " R");
+				}
 				tree = tree.right;
 			}
 		}
@@ -370,26 +386,40 @@ public class RBTree {
 	}
 	
 	public static void main(String [] args) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader("input.txt"));
-		RBTree r = new RBTree();
-		
-		while(true){
-			String inline = br.readLine();
-			String line = inline.trim();
-			int num = Integer.parseInt(line);
-			if(num > 0){
-				r.insert(r.root, new Node(num));
-			}else if(num < 0){
-				r.delete(r.root, num * -1);
-			}else if(num == 0){
-				break;
-			}
-		}
-		br.close();
+		File dir = new File("./rbtest/"); 
+		File[] fileList = dir.listFiles(); 
 
-		System.out.println("total = " + r.total(r.root));
-		System.out.println("nb = " + r.nb(r.root));
-		System.out.println("bh = " + r.bh(r.root));
-		r.inorder(r.root);
+		try{
+			for(int i = 0 ; i < fileList.length ; i++){
+				File file = fileList[i]; 
+				BufferedReader br = new BufferedReader(new FileReader(file));
+				RbTree r = new RbTree();
+				while(true){
+					String inline = br.readLine();
+					String line = inline.trim();
+					int num = Integer.parseInt(line);
+					if(num > 0){
+						r.insert(r.root, new Node(num));
+					}else if(num < 0){
+						r.delete(r.root, num * -1);
+					}else if(num == 0){
+						break;
+					}
+				}
+				
+				r.inorder(r.root);
+				System.out.println("total = " + r.total(r.root));
+				System.out.println("inserted = " + r.inserted);
+				System.out.println("deleted = " + r.deleted);
+				System.out.println("missed = " + r.missed);
+				System.out.println("nb = " + r.nb(r.root));
+				System.out.println("bh = " + r.bh(r.root));
+				br.close();
+			}
+		}catch(IOException e){
+
+		}
+		
+		
 	}
 }
